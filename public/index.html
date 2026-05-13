@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>逃离准时下班：职场守护圈</title>
+  <!-- 全局样式表：定义游戏 UI 布局、主题色、响应式规则 -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ═══ 游戏主容器 ═══ -->
+  <!-- 整体布局：grid 两行结构（顶部面板 + 游戏主体） -->
+  <main class="game-shell">
+
+    <!-- ─── 顶部面板：大厅加入控件、队伍聊天、房主操作、波次选择浮层 ─── -->
+    <section class="top-panel">
+      <!-- 标题区域：副标题 + 主标题 -->
+      <div>
+        <p class="eyebrow">Escape Overtime · LAN Co-op TD</p>
+        <h1>职场守护圈：逃离准时下班</h1>
+      </div>
+
+      <!-- ═══ 大厅视图：玩家加入游戏前显示 ═══ -->
+      <!-- 包含昵称输入、位置选择、难度选择、快速开始等 -->
+      <div id="lobbyView">
+        <section id="joinPanel" class="join-panel card">
+        <h2>加入职场守护圈</h2>
+        <div class="join-form">
+          <!-- 昵称输入：最长12字符 -->
+          <label>昵称 <input id="nameInput" maxlength="12" placeholder="勇者" /></label>
+          <!-- 位置选择：8个玩家槽位，外圈4个+内圈4个 -->
+          <label>位置
+            <select id="slotSelect">
+              <option value="1">1号 外圈左上</option>
+              <option value="2">2号 外圈右上</option>
+              <option value="3">3号 外圈右下</option>
+              <option value="4">4号 外圈左下</option>
+              <option value="5">5号 内圈左上</option>
+              <option value="6">6号 内圈右上</option>
+              <option value="7">7号 内圈右下</option>
+              <option value="8">8号 内圈左下</option>
+            </select>
+          </label>
+          <!-- 难度选择：影响敌人属性、人口上限、利息等 -->
+          <label>难度
+            <select id="difficultySelect">
+              <option value="novice" title="敌人少、血薄，适合第一次玩的同事">新人摸鱼（推荐新手）</option>
+              <option value="normal" title="标准难度，适合组队开黑">正常上班</option>
+              <option value="hard" title="敌人多、血厚、速度快，卷王专属挑战">卷王模式</option>
+            </select>
+          </label>
+          <!-- 共享建造：勾选后所有玩家可在任意区域建塔 -->
+          <label class="shared-option"><input id="sharedBuildInput" type="checkbox" /> 共享建造</label>
+          <!-- 加入按钮：手动选择位置后加入 -->
+          <button id="joinBtn" type="button">加入</button>
+          <!-- 快速开始：自动分配位置和随机昵称 -->
+          <button id="quickStartBtn" type="button" class="quick-start-btn">⚡快速开始</button>
+        </div>
+        <!-- 分享链接：加入后显示，方便邀请局域网同事 -->
+        <div id="shareLink" class="share-link" style="display:none;">📋 分享给同事：<span id="shareUrl"></span> <button id="copyShareBtn" type="button" class="copy-share-btn">复制链接</button></div>
+        <!-- 连接状态提示文本 -->
+        <p id="connectionText" class="hint">正在连接服务器...</p>
+      </section>
+      </div>
+
+      <!-- ═══ 游戏工具栏：加入游戏后显示 ═══ -->
+      <!-- 包含准备/开始按钮、速度切换、重置 -->
+      <div id="gameToolbar" style="display:none;">
+
+      <div class="top-actions">
+        <!-- 主操作按钮：根据状态切换"准备"/"取消准备"/"全员就绪开始" -->
+        <button id="actionBtn" type="button" class="btn-primary-action">我准备好了</button>
+        <!-- 速度按钮：房主可切换 1x/2x/3x/5x/10x -->
+        <button id="speedBtn" type="button">1x 速度</button>
+        <!-- 重置按钮：房主或游戏结束后可用 -->
+        <button id="resetBtn" type="button" class="secondary">重置</button>
+      </div>
+      </div>
+
+      <!-- 波次预告显示：当前/下一波特殊描述（如"内卷潮"、"隐身潮"等） -->
+      <div id="wavePreview" class="wave-preview" style="display:none;"></div>
+
+      <!-- ═══ 波次选择面板（右侧滑出） ═══ -->
+      <!-- Roguelike 抉择：每4波弹出，玩家从3个选项中选一个，15秒超时 -->
+      <div id="waveChoicePanel" class="wave-choice-panel wave-choice-side" style="display:none;">
+        <div class="wave-choice-content">
+          <h2>🎯 职场抉择</h2>
+          <!-- 倒计时：15秒决策时间 -->
+          <p id="waveChoiceTimer" class="wave-choice-timer">剩余 15 秒</p>
+          <!-- 选项容器：由 JS 动态生成3个抉择卡片 -->
+          <div id="waveChoiceOptions" class="wave-choice-options"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 游戏主体布局：左侧边栏 + 中央画布 + 右侧边栏 ═══ -->
+    <section class="game-layout">
+
+      <!-- ─── 左侧边栏：建塔控制、选中塔操作、功能中心、策略提示 ─── -->
+      <aside class="sidebar battle-sidebar">
+        <!-- 建塔面板：显示可建造的塔类型按钮（按分类Tab切换） -->
+        <div class="card">
+          <h2>部署职场塔</h2>
+          <!-- 塔按钮容器：由 JS 根据 towerTypes 配置动态渲染 -->
+          <div id="towerButtons"></div>
+          <!-- 建塔提示：显示区域限制、新手推荐等信息 -->
+          <p class="hint" id="buildHint">加入后只能在自己的岗位区域部署职场塔；准备后任务自动推进。</p>
+
+        </div>
+
+        <!-- 当前岗位面板：显示选中塔的详情、操作按钮 -->
+        <div class="card">
+          <h2>当前岗位</h2>
+          <!-- 选中塔详情：显示属性、技能、合成配方、羁绊图标等 -->
+          <div id="selectionPanel" class="selection-panel">未选择职场塔</div>
+          <!-- 塔操作按钮组：强化/合成/撤下 -->
+          <div class="panel-actions">
+            <button id="upgradeBtn" type="button">强化</button>
+            <button id="synthesizeBtn" type="button">合成</button>
+            <button id="sellBtn" type="button" class="secondary sell-danger">撤下</button>
+          </div>
+          <!-- 释放技能按钮：需要塔有主动技能且不在冷却中 -->
+          <button id="useSkillBtn" type="button" class="wide-action">释放技能</button>
+        </div>
+
+        <!-- 功能中心：可折叠，包含理财/抽签/竞争三个子系统入口 -->
+        <div class="card feature-center-card">
+          <!-- 可折叠标题：点击展开/收起功能按钮 -->
+          <h2 id="featureCenterToggle" class="collapsible-header">⚡ 功能中心 <span class="collapse-arrow">▶</span></h2>
+          <!-- 功能按钮网格：默认收起，点击标题展开 -->
+          <div class="feature-launcher-grid" id="featureCenterBody" style="display:none;">
+            <!-- 摸鱼理财：投资/存款系统 -->
+            <button id="openInvestmentBtn" type="button" class="feature-launcher">
+              <strong>摸鱼理财</strong>
+              <span id="investmentSummary">查看投资与利息</span>
+            </button>
+            <!-- 面试抽签：花费50金随机获得一座塔 -->
+            <button id="openGachaBtn" type="button" class="feature-launcher">
+              <strong>面试抽签</strong>
+              <span id="gachaSummary">抽随机职场塔</span>
+            </button>
+            <!-- 职场竞争：送怪给对手 + 购买护盾 -->
+            <button id="openPressureBtn" type="button" class="feature-launcher">
+              <strong>职场竞争</strong>
+              <span id="pressureSummary">送怪与护盾</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ─── 中央画布：游戏主渲染区域 ─── -->
+      <!-- 绘制地图、塔、敌人、弹道、特效、HUD等所有可视化内容 -->
+      <canvas id="gameCanvas" aria-label="八玩家职场守护圈地图"></canvas>
+
+      <!-- ─── 右侧边栏：只读状态信息 ─── -->
+      <aside class="sidebar data-sidebar">
+        <!-- 玩家状态卡片：当前玩家状态栏 + 玩家列表 -->
+        <div class="card players-card">
+          <h2>玩家状态</h2>
+          <!-- 我的状态栏：金币、准点值、波次、天气（两行布局） -->
+          <div id="myStatusBar" class="my-status-bar" style="display:none;"></div>
+          <!-- 玩家面板：显示选中塔所属玩家或自己的卡片 -->
+          <div id="playersPanel" class="players-panel"></div>
+        </div>
+
+        <!-- 环境状态卡片：时段、天气、随机事件、波次修正 -->
+        <div class="card weather-card">
+          <h2>🌤️ 环境状态</h2>
+          <div id="environmentPanel" class="mini-list">等待游戏开始...</div>
+        </div>
+
+        <!-- 战斗日志卡片：击杀/建塔/事件等实时日志 -->
+        <div class="card log-card">
+          <h2>战斗日志</h2>
+          <div id="logList" class="log-list"></div>
+        </div>
+
+        <!-- 团队聊天表单：发送消息给所有玩家 -->
+        <form id="chatForm" class="chat-form card chat-compact">
+          <input id="chatInput" maxlength="80" placeholder="团队沟通" />
+          <button type="submit">发送</button>
+        </form>
+      </aside>
+    </section>
+
+    <!-- ═══ 功能模态框：理财/抽签/竞争的二级操作页面 ═══ -->
+    <!-- 点击功能中心按钮后弹出，显示具体操作界面 -->
+    <div id="featureModal" class="feature-modal" style="display:none;">
+      <!-- 半透明遮罩层 -->
+      <div class="feature-modal-overlay"></div>
+      <section class="feature-modal-panel">
+        <div class="feature-modal-header">
+          <!-- 标题：由 JS 根据当前面板类型设置 -->
+          <h2 id="featureModalTitle">功能</h2>
+          <button id="featureModalClose" type="button" class="secondary">关闭</button>
+        </div>
+        <!-- 内容区域：由 JS 动态渲染（投资列表/抽签界面/送怪界面） -->
+        <div id="featureModalBody" class="feature-modal-body mini-list"></div>
+      </section>
+    </div>
+
+    <!-- 塔详情 tooltip：鼠标悬停塔按钮时显示的浮层 -->
+    <div id="towerTooltip" class="tower-tooltip" style="display:none;"></div>
+
+    <!-- ═══ 首次引导浮层 ═══ -->
+    <!-- 新玩家首次进入时显示的操作教程，共3步 -->
+    <div id="guideOverlay" class="guide-overlay" style="display:none;">
+      <!-- 引导遮罩 -->
+      <div class="guide-overlay-bg"></div>
+      <div class="guide-card-overlay">
+        <!-- 引导内容：由 JS 动态渲染步骤标题和说明 -->
+        <div id="guideContent" class="guide-content"></div>
+        <div class="guide-actions">
+          <button id="guideNextBtn" type="button">下一步</button>
+          <button id="guideSkipBtn" type="button" class="secondary">跳过引导</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 浮动塔操作栏 ═══ -->
+    <!-- 在画布上点击选中塔后，靠近塔位置弹出的快捷操作栏 -->
+    <div id="floatingActionBar" class="floating-action-bar" style="display:none;">
+      <button id="floatUpgradeBtn" type="button" class="float-btn upgrade-btn">强化 [U]</button>
+      <button id="floatSellBtn" type="button" class="float-btn sell-btn">撤下 [S]</button>
+      <button id="floatSkillBtn" type="button" class="float-btn skill-btn">技能 [R]</button>
+    </div>
+
+    <!-- ═══ 结算战绩卡 ═══ -->
+    <!-- 游戏结束后弹出，显示统计信息和策略建议 -->
+    <div id="endGameCard" class="end-game-card" style="display:none;">
+      <div class="end-game-overlay end-game-overlay-light"></div>
+      <div class="end-game-panel">
+        <h2 id="endGameTitle">📊 战绩统计</h2>
+        <!-- 战绩内容：由 JS 渲染击杀数、塔数量、MVP、策略建议等 -->
+        <div id="endGameBody" class="end-game-body"></div>
+        <button id="endGameCloseBtn" type="button">确定</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 客户端主逻辑：WebSocket 通信、Canvas 渲染、UI 交互 -->
+  <script src="client.js"></script>
+</body>
+</html>

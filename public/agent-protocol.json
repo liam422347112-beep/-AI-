@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "name": "职场守护圈智能体协议",
+  "websocket": {
+    "urlPattern": "ws://<host>:5252",
+    "localUrl": "ws://localhost:5252",
+    "encoding": "JSON string per WebSocket message"
+  },
+  "incomingMessages": {
+    "hello": {
+      "description": "Sent once after connection with static game configuration.",
+      "requiredFields": [
+        "protocolVersion",
+        "clientId",
+        "towerTypes",
+        "synthesisRules",
+        "difficultyOptions",
+        "playerRoles",
+        "buildAreas",
+        "pathRoutes",
+        "mainPathCells",
+        "gridSize",
+        "cols",
+        "rows"
+      ]
+    },
+    "state": {
+      "description": "Broadcast repeatedly with the authoritative game state.",
+      "requiredFields": [
+        "protocolVersion",
+        "clientId",
+        "phase",
+        "hostSlot",
+        "wave",
+        "spawning",
+        "spawnCount",
+        "nextWaveConfig",
+        "difficulty",
+        "difficultyName",
+        "sharedBuild",
+        "autoWaveTimer",
+        "speed",
+        "players",
+        "towers",
+        "towerCounts",
+        "enemies",
+        "logs"
+      ]
+    },
+    "error": {
+      "description": "Sent when a requested action is rejected or invalid.",
+      "fields": {
+        "message": "Human-readable error text."
+      }
+    }
+  },
+    "towersUseOwnerSlot": true,
+    "towerOwnershipField": "ownerSlot",
+    "occupiedGridRejectedByServer": true,
+    "outgoingMessages": {
+    "join": {
+      "example": { "type": "join", "name": "AI-1", "slot": 1 },
+      "description": "Join a player slot during lobby."
+    },
+    "lobbyOptions": {
+      "example": { "type": "lobbyOptions", "difficulty": "novice", "sharedBuild": true },
+      "description": "Host-only lobby configuration."
+    },
+    "ready": {
+      "example": { "type": "ready", "ready": true },
+      "description": "Mark this player ready or unready."
+    },
+    "startWave": {
+      "example": { "type": "startWave" },
+      "description": "Start the game from lobby after all connected players are ready. Later waves auto-progress."
+    },
+    "build": {
+      "example": { "type": "build", "towerType": "arrow", "gridX": 3, "gridY": 1 },
+      "description": "Build a non-synthOnly tower at a valid grid cell."
+    },
+    "upgrade": {
+      "example": { "type": "upgrade", "towerId": 12 },
+      "description": "Upgrade one owned tower up to level 5."
+    },
+    "synthesize": {
+      "example": { "type": "synthesize", "towerId": 12 },
+      "description": "Synthesize an ultimate tower if this owned tower is part of a complete level-5 material set."
+    },
+    "sell": {
+      "example": { "type": "sell", "towerId": 12 },
+      "description": "Sell one owned tower for partial gold refund."
+    },
+    "speed": {
+      "example": { "type": "speed", "speed": 10 },
+      "allowedSpeeds": [1, 2, 3, 5, 10],
+      "description": "Host-only speed control."
+    },
+    "chat": {
+      "example": { "type": "chat", "text": "我准备补功能辅助塔" },
+      "description": "Send team communication into logs. Text wd and bf are debug cheat commands and must be reported if used."
+    },
+    "reset": {
+      "example": { "type": "reset" },
+      "description": "Host can reset; ended games can also reset."
+    }
+  },
+  "damageCounter": {
+    "physical": { "label": "执行力", "countersArmor": "magic" },
+    "magic": { "label": "沟通力", "countersArmor": "physical" },
+    "pierce": { "label": "专业力", "countersArmor": "resistance" },
+    "chaos": { "label": "创造力", "countersArmor": "holy" }
+  },
+  "armorTypes": {
+    "physical": "流程型压力",
+    "magic": "沟通型压力",
+    "resistance": "抗压型压力",
+    "holy": "权威型压力"
+  },
+  "recommendedLoop": [
+    "connect",
+    "wait for hello",
+    "join an empty slot",
+    "if host, optionally set lobbyOptions",
+    "send ready true",
+    "when all players are ready, send startWave",
+    "while playing, inspect nextWaveConfig, players, towers, enemies",
+    "build valid towers when gold and population allow",
+    "upgrade owned towers before population cap blocks growth",
+    "synthesize when synthesisRules materials are all level 5",
+    "send chat summaries for coordination",
+    "on ended or timeout, produce a report"
+  ],
+  "reportSchema": {
+    "protocolVersion": "number",
+    "agentName": "string",
+    "slot": "number",
+    "difficulty": "novice|normal|hard",
+    "sharedBuild": "boolean",
+    "usedCheats": "boolean",
+    "durationSeconds": "number",
+    "finalPhase": "lobby|playing|ended",
+    "finalWave": "number",
+    "livesBySlot": "object",
+    "towerCountBySlot": "object",
+    "towerTypesBuilt": "object",
+    "upgrades": "number",
+    "syntheses": "number",
+    "observedProblems": "string[]",
+    "recommendations": "string[]"
+  }
+}

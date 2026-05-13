@@ -1,0 +1,815 @@
+/* ══════════════════════════════════════════════════════════════
+ * 职场守护圈 — 样式表
+ * 
+ * 功能概述：
+ * - 游戏 UI 布局（双侧边栏 + 中央画布）
+ * - 暗绿色职场主题（深色背景 + 荧光绿/金色点缀）
+ * - 响应式规则（桌面/平板/手机）
+ * 
+ * 模块结构：
+ * 1. 基础重置 & 表单主题
+ * 2. 顶部面板 & 大厅
+ * 3. 游戏主布局（三栏）
+ * 4. 侧边栏卡片 & 面板
+ * 5. 塔选择 & 分类Tab
+ * 6. 功能中心 & 模态框
+ * 7. 波次预告 & 选择面板
+ * 8. 战斗HUD & 特效
+ * 9. 批次功能（tooltip/引导/结算等）
+ * 10. 响应式规则
+ * ══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. 基础重置 & 共享表单/按钮主题 ─── */
+* { box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  margin: 0;
+  color: #edf8df;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  /* 径向渐变绿色光晕 + 深绿底色，营造职场深夜氛围 */
+  background: radial-gradient(circle at 18% 12%, rgba(82, 255, 118, .2), transparent 28rem), linear-gradient(135deg, #06130a, #132018 48%, #07100b);
+}
+button, input, select { font: inherit; }
+button {
+  border: 1px solid rgba(244, 220, 132, .7);
+  border-radius: 8px;
+  padding: .5rem .72rem;
+  color: #15200f;
+  font-size: .9rem;
+  font-weight: 900;
+  cursor: pointer;
+  /* 金色渐变按钮：模拟金币/奖励感 */
+  background: linear-gradient(135deg, #e8d27b, #9f7d2a);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .24);
+}
+button:disabled { cursor: not-allowed; filter: grayscale(.8) brightness(.65); }
+input, select {
+  width: 100%;
+  margin-top: 2px;
+  border: 1px solid rgba(151, 220, 107, .35);
+  border-radius: 7px;
+  padding: .34rem;
+  color: #edf8df;
+  background: #0b1d0e;
+}
+/* 次要按钮：深绿色低调风格 */
+.secondary { color: #e9f9db; background: linear-gradient(135deg, #24472b, #122a17); }
+.hidden { display: none !important; }
+
+/* ─── 2. 顶部面板 & 大厅 ─── */
+/* 整体两行网格布局：顶部面板（auto高度）+ 游戏主体（撑满剩余空间） */
+.game-shell {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 6px 8px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
+}
+/* 顶部面板：标题 + 大厅/工具栏 + 波次预告，水平排列 */
+.top-panel { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; }
+.chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px;
+  padding: 4px 6px;
+}
+.chat-form input { margin-top: 0; font-size: .78rem; padding: .28rem; }
+.chat-form button { padding: .28rem .5rem; font-size: .78rem; }
+
+.top-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.eyebrow { margin: 0 0 2px; color: #8cff8d; font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; }
+h1, h2 { margin: 0; }
+h1 { color: #f2ffcd; font-size: clamp(1.15rem, 2vw, 2rem); text-shadow: 0 0 18px rgba(112, 255, 108, .24); }
+h2 { margin-bottom: 5px; color: #e8d27b; font-size: .86rem; }
+
+/* ─── 3. 卡片 & 侧边栏通用样式 ─── */
+/* 卡片和侧边栏面板共享紧凑间距，确保一屏显示完整游戏 */
+.card {
+  padding: 7px;
+  border: 1px solid rgba(151, 220, 107, .28);
+  border-radius: 10px;
+  background: rgba(8, 20, 10, .84);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .2);
+}
+/* 大厅加入面板：紧凑单行表单 */
+.join-panel { flex: 1 1 auto; max-width: 720px; padding: 4px 6px; }
+.join-panel h2 { display: none; }
+.join-form { display: grid; grid-template-columns: minmax(70px, .6fr) minmax(120px, 1fr) minmax(120px, .9fr) auto auto auto; gap: 5px; align-items: end; font-size: .75rem; }
+.shared-option { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.shared-option input { width: auto; margin: 0; }
+
+/* 中央画布：像素风格渲染，圆角边框 + 内发光 */
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  object-fit: fill;
+  /* pixelated：保持像素画锐利，不模糊缩放 */
+  image-rendering: pixelated;
+  border: 2px solid rgba(129, 193, 78, .62);
+  border-radius: 12px;
+  background: #102011;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .34), inset 0 0 28px rgba(91, 255, 101, .08);
+}
+/* 侧边栏：垂直排列卡片，溢出时滚动 */
+.sidebar {
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+.sidebar > .card { flex: 0 0 auto; min-height: 0; }
+/* 右侧数据面板：玩家卡片和日志卡片按比例分配空间 */
+.data-sidebar .players-card {
+  flex: 1 1 240px;
+  min-height: 120px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.data-sidebar .log-card {
+  flex: 1 1 150px;
+  min-height: 100px;
+}
+/* 左侧战斗面板：建塔区域较大，操作区域自适应 */
+.battle-sidebar > .card:nth-child(1) {
+  flex: 1.35 1 300px;
+  min-height: 230px;
+  overflow: auto;
+}
+.battle-sidebar > .card:nth-child(2) {
+  flex: 0 0 auto;
+}
+.battle-sidebar .feature-center-card {
+  flex: 0 0 auto;
+}
+
+/* ─── 4. 我的状态栏 & 玩家面板 ─── */
+/* 玩家状态栏：金币、准点值、波次、天气 — 两行水平排列 */
+.my-status-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 5px 8px;
+  margin-bottom: 6px;
+  background: rgba(0, 0, 0, .45);
+  border: 1px solid rgba(125, 255, 113, .25);
+  border-radius: 8px;
+  font-size: .78rem;
+  flex-shrink: 0;
+}
+.my-status-bar .status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 8px;
+}
+.my-status-bar .status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.my-status-bar .status-icon { font-size: .9rem; }
+.my-status-bar .status-value { font-weight: 700; }
+.my-status-bar .status-gold { color: #ffd700; }
+.my-status-bar .status-lives { color: #ff6b6b; }
+.my-status-bar .status-wave { color: #6ec6ff; }
+.my-status-bar .status-weather { color: #aadcff; }
+/* 玩家卡片网格：垂直滚动 */
+.players-panel { flex: 1 1 auto; min-height: 0; display: grid; gap: 6px; overflow-y: auto; overflow-x: hidden; padding-bottom: 8px; }
+/* 单个玩家卡片：左侧彩色边框标识所属阵营 */
+.player-card {
+  display: grid;
+  gap: 1px;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .04);
+  font-size: .78rem;
+}
+.player-card.mine { background: rgba(255, 240, 168, .1); }
+.player-card span { color: #cceabd; font-size: .78rem; }
+
+/* ─── 5. 塔选择 & 分类Tab ─── */
+.command-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+/* 分类Tab栏：4个分类Tab横排 */
+.tower-tab-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 6px; }
+.tower-tab {
+  padding: 4px 0;
+  font-size: .78rem;
+  font-weight: 700;
+  text-align: center;
+  color: #cceabd;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 6px;
+  box-shadow: none;
+}
+/* 激活态Tab：金色文字 + 绿色边框发光 */
+.tower-tab.active {
+  color: #fff2b0;
+  background: linear-gradient(135deg, #1d4d28, #102514);
+  border-color: rgba(125,255,113,.5);
+  box-shadow: 0 0 8px rgba(118,255,113,.15);
+}
+.tower-category { margin-top: 6px; }
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: #cceabd;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  box-shadow: none;
+}
+.category-header.expanded {
+  border-color: rgba(125,255,113,.4);
+  background: rgba(29,77,40,.4);
+}
+.category-header .arrow { font-size: .65rem; }
+.category-content { margin-top: 4px; }
+/* 塔按钮：网格居中，深绿渐变底色 */
+.command-button {
+  display: grid;
+  place-items: center;
+  min-height: 56px;
+  padding: 5px;
+  color: #f3ffe9;
+  background: linear-gradient(135deg, #1d4d28, #102514);
+  border-color: rgba(125, 255, 113, .35);
+}
+.command-button.selected { border-color: #fff0a8; box-shadow: 0 0 0 2px rgba(255, 240, 168, .22), 0 0 18px rgba(118, 255, 113, .18); }
+.command-button strong { color: #fff1aa; font-size: .95rem; }
+.command-button span { color: #f3ffe9; font-size: .78rem; }
+.command-button small { color: #cceabd; font-size: .66rem; }
+/* 合成专用（synthOnly）：灰色虚化，不可点击 */
+.command-button.empty { color: rgba(255,255,255,.25); background: rgba(255,255,255,.035); border-color: rgba(255,255,255,.08); box-shadow: none; }
+.hint, .selection-panel { margin: 4px 0 0; color: #cceabd; font-size: .74rem; line-height: 1.25; }
+
+/* ─── 5b. 选中塔详情面板 ─── */
+.selection-panel { min-height: 82px; max-height: 210px; overflow: auto; padding: 8px; border: 1px solid rgba(255, 255, 255, .08); border-radius: 8px; background: rgba(255, 255, 255, .04); }
+/* 羁绊图标行：选中面板底部的阵营图标网格 */
+.selection-synergy-icons { display: flex; gap: 4px; margin-top: 6px; padding-top: 5px; border-top: 1px solid rgba(255,255,255,.1); justify-content: center; }
+.selection-synergy-icons div:hover { border-color: #73ff66 !important; box-shadow: 0 0 8px rgba(125,255,113,.3); transform: translateY(-1px); }
+.panel-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 6px; }
+.wide-action { width: 100%; margin-top: 6px; }
+.mini-list { display: grid; gap: 5px; color: #cceabd; font-size: .73rem; }
+.mini-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.mini-row strong { color: #fff2b0; text-align: right; }
+.mini-card { display: grid; gap: 2px; padding: 5px 6px; border: 1px solid rgba(255,255,255,.09); border-radius: 7px; background: rgba(255,255,255,.04); }
+.mini-card strong { color: #fff2b0; }
+.mini-card span, .mini-note { color: #cceabd; line-height: 1.35; }
+.mini-note.warn { color: #ffb36a; }
+/* 功能面板内操作按钮：深绿渐变 */
+.mini-action { display: grid; gap: 2px; width: 100%; min-height: 0; padding: 5px 6px; color: #f3ffe9; text-align: left; background: linear-gradient(135deg, #1d4d28, #102514); border-color: rgba(125, 255, 113, .35); }
+.mini-action strong { color: #fff1aa; font-size: .78rem; }
+.mini-action span { color: #cceabd; font-size: .67rem; line-height: 1.25; }
+
+/* ─── 6. 功能中心 & 模态框 ─── */
+.feature-center-card { flex: 0 0 auto; }
+.feature-launcher-grid { display: grid; gap: 6px; }
+/* 功能入口按钮：左侧对齐，深绿渐变 */
+.feature-launcher {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px;
+  color: #f3ffe9;
+  text-align: left;
+  background: linear-gradient(135deg, #1d4d28, #102514);
+  border-color: rgba(125, 255, 113, .35);
+}
+.feature-launcher strong { color: #fff1aa; font-size: .86rem; }
+.feature-launcher span { color: #cceabd; font-size: .7rem; line-height: 1.25; }
+/* 功能模态框：全屏固定定位，居中显示 */
+.feature-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  align-items: center;
+  justify-content: center;
+}
+/* 模态框遮罩：半透明黑底 + 毛玻璃效果 */
+.feature-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.68);
+  /* backdrop-filter: 模糊背景，营造聚焦感 */
+  backdrop-filter: blur(4px);
+}
+.feature-modal-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(680px, 92vw);
+  max-height: 82vh;
+  padding: 18px;
+  border: 2px solid rgba(115,255,102,.45);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #142516, #1d3320);
+  box-shadow: 0 0 40px rgba(74,138,74,.3);
+}
+.feature-modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.feature-modal-header h2 { margin: 0; font-size: 1.25rem; }
+.feature-modal-body { overflow: auto; padding-right: 2px; }
+
+.log-list { display: flex; flex-direction: column; gap: 5px; max-height: 100%; overflow: auto; color: #e8f7db; font-size: .78rem; }
+.log-list p { margin: 0; padding-bottom: 5px; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+
+/* ─── 10. 响应式规则 ─── */
+/* 小高度桌面：隐藏副标题，缩小按钮 */
+@media (max-height: 700px) and (min-width: 1101px) {
+  .eyebrow { display: none; }
+  .top-panel { min-height: 30px; }
+  button { padding: .38rem .58rem; font-size: .82rem; }
+}
+/* 中等宽度平板：单列布局，侧边栏并排 */
+@media (max-width: 1100px) {
+  html, body { overflow: auto; }
+  .game-shell { height: auto; min-height: 100vh; }
+  .game-layout { grid-template-columns: 1fr; }
+  canvas { height: auto; }
+  .sidebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; }
+}
+/* 手机宽度：全单列 */
+@media (max-width: 760px) {
+  .top-panel, .top-actions { align-items: stretch; flex-direction: column; }
+  .join-form { grid-template-columns: 1fr; }
+  .sidebar { grid-template-columns: 1fr; }
+}
+
+/* ─── 波次预告条 ─── */
+/* 特殊波次时显示的顶部提示条（粉色渐变 + 脉冲动画） */
+.wave-preview {
+  background: linear-gradient(135deg, rgba(255,107,157,.15), rgba(155,89,182,.15));
+  border: 1px solid rgba(255,107,157,.3);
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #ffb3d0;
+  text-align: center;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+.wave-preview .preview-icon { font-size: 1.1rem; margin-right: 6px; }
+.wave-preview .preview-desc { font-weight: bold; color: #ff6b9d; }
+
+/* ─── 波次选择面板（全屏居中版本，保留兼容） ─── */
+.wave-choice-panel {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wave-choice-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(4px);
+}
+.wave-choice-content {
+  position: relative;
+  background: linear-gradient(135deg, #1a2a1a, #1e3320);
+  border: 2px solid #4a8a4a;
+  border-radius: 16px;
+  padding: 28px 32px;
+  max-width: 700px;
+  width: 90%;
+  box-shadow: 0 0 40px rgba(74,138,74,.3);
+}
+.wave-choice-content h2 {
+  text-align: center;
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+  color: #fff0a8;
+}
+.wave-choice-timer {
+  text-align: center;
+  color: #ff9b6a;
+  font-size: 0.95rem;
+  margin: 0 0 18px;
+}
+.wave-choice-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+/* 抉择选项卡片：悬停上移 + 绿色边框 */
+.wave-choice-option {
+  background: rgba(255,255,255,.05);
+  border: 2px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  padding: 16px 14px;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: center;
+}
+.wave-choice-option {
+  pointer-events: auto;
+}
+.wave-choice-option:hover {
+  border-color: #73ff66;
+  background: rgba(115,255,102,.08);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(115,255,102,.15);
+}
+.wave-choice-option .option-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 8px;
+}
+.wave-choice-option .option-name {
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: #fff0a8;
+  display: block;
+  margin-bottom: 6px;
+}
+.wave-choice-option .option-desc {
+  font-size: 0.82rem;
+  color: #cceabd;
+  line-height: 1.4;
+}
+.wave-choice-option .option-tag {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  background: rgba(255,255,255,.1);
+  color: #aaa;
+}
+
+/* ─── 特殊敌人视觉效果 ─── */
+/* 隐身敌人：降低透明度，需日报塔才能发现 */
+.enemy-invisible { opacity: 0.25; }
+.enemy-semi-invisible { opacity: 0.5; }
+/* 光环敌人：虚线圆环指示影响范围 */
+.enemy-aura-ring { position: absolute; border-radius: 50%; border: 2px dashed rgba(155,89,182,.5); pointer-events: none; }
+
+/* 脉冲发光动画：用于波次预告等需要吸引注意力的元素 */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(255,107,157,.2); }
+  50% { box-shadow: 0 0 18px rgba(255,107,157,.4); }
+}
+
+/* ─── 快速开始按钮 ─── */
+/* 橙金渐变 + 脉冲动画，视觉突出，引导新玩家点击 */
+.quick-start-btn {
+  background: linear-gradient(135deg, #ffd700, #ff8c00) !important;
+  color: #1a0a00 !important;
+  font-weight: 900;
+  font-size: .9rem !important;
+  padding: .5rem .72rem !important;
+  border: 2px solid rgba(255,215,0,.8) !important;
+  box-shadow: 0 0 16px rgba(255,215,0,.35), 0 4px 12px rgba(0,0,0,.3) !important;
+  animation: quick-start-pulse 2s ease-in-out infinite;
+}
+.quick-start-btn:hover { transform: translateY(-2px); box-shadow: 0 0 24px rgba(255,215,0,.5), 0 6px 16px rgba(0,0,0,.3) !important; }
+#joinBtn:hover { transform: translateY(-2px); box-shadow: 0 0 24px rgba(255,215,0,.5), 0 6px 16px rgba(0,0,0,.3); }
+@keyframes quick-start-pulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(255,215,0,.35), 0 4px 12px rgba(0,0,0,.3); }
+  50% { box-shadow: 0 0 28px rgba(255,215,0,.55), 0 4px 16px rgba(0,0,0,.3); }
+}
+
+/* ─── 塔按钮 tooltip ─── */
+/* 鼠标悬停塔按钮时显示的详细属性浮层，pointer-events:none 避免遮挡鼠标 */
+.tower-tooltip {
+  position: fixed;
+  z-index: 2000;
+  max-width: 320px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #142516, #1a3520);
+  border: 2px solid rgba(125,255,113,.5);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5), 0 0 12px rgba(125,255,113,.15);
+  color: #e8f7db;
+  font-size: .82rem;
+  line-height: 1.5;
+  /* pointer-events: none — 浮层不拦截鼠标事件，鼠标穿透到下层按钮 */
+  pointer-events: none;
+}
+.tower-tooltip strong { color: #fff2b0; font-size: .95rem; }
+.tower-tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; margin: 3px 0; }
+.tower-tooltip .tt-label { color: #cceabd; }
+.tower-tooltip .tt-value { color: #fff; font-weight: 700; }
+.tower-tooltip .tt-counter { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.1); font-size: .78rem; }
+.tower-tooltip .tt-hotkey { margin-top: 6px; color: #ffd700; font-size: .78rem; }
+
+/* ─── 分享链接 ─── */
+.share-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: rgba(255,215,0,.08);
+  border: 1px solid rgba(255,215,0,.25);
+  border-radius: 8px;
+  font-size: .78rem;
+  color: #ffd700;
+  margin-top: 6px;
+}
+.share-link span { color: #fff2b0; font-weight: 700; user-select: all; }
+.copy-share-btn {
+  padding: 2px 8px !important;
+  font-size: .72rem !important;
+  background: linear-gradient(135deg, #2a5a30, #1a3a1e) !important;
+  border-color: rgba(255,215,0,.4) !important;
+}
+
+/* ─── 按钮主次区分 ─── */
+/* 主操作按钮：金色渐变，视觉焦点 */
+.btn-primary-action {
+  background: linear-gradient(135deg, #ffd700, #e8a000) !important;
+  color: #1a0a00 !important;
+  font-weight: 900;
+  border-color: rgba(255,215,0,.8) !important;
+  box-shadow: 0 4px 14px rgba(255,215,0,.3) !important;
+}
+.btn-primary-action:hover { box-shadow: 0 6px 20px rgba(255,215,0,.45) !important; }
+.btn-secondary-action {
+  background: linear-gradient(135deg, #24472b, #122a17) !important;
+  color: #e9f9db !important;
+  border-color: rgba(151,220,107,.4) !important;
+}
+/* 危险操作按钮（撤下）：红色警示 */
+.sell-danger {
+  border: 2px solid rgba(255,80,80,.7) !important;
+  background: linear-gradient(135deg, #3a1515, #2a0a0a) !important;
+  color: #ff6b6b !important;
+}
+
+/* ─── 首次引导浮层 ─── */
+.guide-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.guide-overlay-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(6px);
+}
+.guide-card-overlay {
+  position: relative;
+  width: min(480px, 90vw);
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #142516, #1d3320);
+  border: 2px solid rgba(125,255,113,.5);
+  border-radius: 16px;
+  box-shadow: 0 0 40px rgba(74,138,74,.4);
+  text-align: center;
+}
+.guide-content h3 { color: #fff2b0; font-size: 1.3rem; margin: 0 0 12px; }
+.guide-content p { color: #cceabd; font-size: .92rem; line-height: 1.6; margin: 0 0 8px; }
+.guide-content .guide-icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
+.guide-actions { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+.guide-actions button { min-width: 120px; }
+
+/* ─── 结算战绩卡 ─── */
+.end-game-card {
+  position: fixed;
+  inset: 0;
+  z-index: 3500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.end-game-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(4px);
+}
+.end-game-panel {
+  position: relative;
+  width: min(520px, 92vw);
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #142516, #1d3320);
+  border: 2px solid rgba(255,215,0,.5);
+  border-radius: 16px;
+  box-shadow: 0 0 40px rgba(255,215,0,.2);
+  text-align: center;
+}
+.end-game-panel h2 { color: #fff2b0; font-size: 1.4rem; margin-bottom: 16px; }
+.end-game-body { color: #e8f7db; font-size: .92rem; line-height: 1.8; text-align: left; }
+.end-game-body .stat-line { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.end-game-body .stat-line strong { color: #fff2b0; }
+.end-game-body .mvp-line { text-align: center; font-size: 1.1rem; color: #ffd700; margin: 12px 0; padding: 10px; background: rgba(255,215,0,.1); border-radius: 10px; }
+.end-game-body .suggestion { margin-top: 12px; padding: 10px; background: rgba(255,107,107,.1); border: 1px solid rgba(255,107,107,.3); border-radius: 8px; color: #ffb3b3; font-size: .88rem; }
+.end-game-panel button { margin-top: 16px; min-width: 140px; }
+
+/* ══════════════════════════════════════════════════════════════
+   Layout Refactor — Phase 2 & 3 新增样式
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── 大厅/游戏视图切换 ─── */
+/* 加入前显示大厅，加入后显示工具栏 */
+#lobbyView {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 1;
+}
+#gameToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ─── 可折叠功能中心 ─── */
+.collapsible-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.collapsible-header:hover { color: #fff2b0; }
+.collapse-arrow {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+.collapse-arrow.open { transform: rotate(90deg); }
+
+/* ─── 侧边栏内嵌聊天 ─── */
+.chat-compact {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px;
+  padding: 4px 6px;
+}
+.chat-compact input {
+  margin-top: 0;
+  font-size: 0.78rem;
+  padding: 0.28rem;
+}
+.chat-compact button {
+  padding: 0.28rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+/* ─── 波次选择侧面板（右侧滑出） ─── */
+/* 从右侧滑入的波次选择面板，不遮挡游戏画面 */
+.wave-choice-panel.wave-choice-side {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  z-index: 1000;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  width: min(380px, 85vw);
+  background: transparent;
+  /* 面板外区域不拦截鼠标事件 */
+  pointer-events: none;
+}
+.wave-choice-panel {
+  pointer-events: auto;
+}
+.wave-choice-panel .wave-choice-content {
+  pointer-events: auto;
+}
+/* 侧面板内容区域：左侧圆角，无右边界 */
+.wave-choice-side .wave-choice-content {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  max-height: 100vh;
+  overflow-y: auto;
+  border-radius: 16px 0 0 16px;
+  background: linear-gradient(135deg, rgba(26,42,26,.95), rgba(30,51,32,.95));
+  border: 2px solid rgba(74,138,74,.6);
+  border-right: none;
+  box-shadow: -8px 0 32px rgba(0,0,0,.5);
+  padding: 20px 22px;
+  pointer-events: auto;
+  animation: slideInRight 0.3s ease-out;
+}
+.wave-choice-side .wave-choice-options {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+/* 右滑入动画 */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ─── 浮动塔操作栏 ─── */
+/* 画布上选中塔后弹出的快捷操作栏，跟随塔位置 */
+.floating-action-bar {
+  position: absolute;
+  z-index: 900;
+  display: flex;
+  gap: 4px;
+  background: rgba(8,20,10,.92);
+  border: 2px solid rgba(125,255,113,.5);
+  border-radius: 10px;
+  padding: 4px 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.5);
+  pointer-events: auto;
+}
+.float-btn {
+  padding: 4px 8px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.upgrade-btn {
+  background: linear-gradient(135deg, #2a6a30, #1a4a20) !important;
+  border-color: rgba(125,255,113,.5) !important;
+  color: #d6f08b !important;
+}
+.sell-btn {
+  background: linear-gradient(135deg, #6a2020, #4a1515) !important;
+  border-color: rgba(255,80,80,.5) !important;
+  color: #ff9b9b !important;
+}
+.skill-btn {
+  background: linear-gradient(135deg, #2a2a6a, #1a1a4a) !important;
+  border-color: rgba(100,100,255,.5) !important;
+  color: #aaaaff !important;
+}
+
+/* ─── 三栏布局（左侧边栏 + 中央画布 + 右侧边栏） ─── */
+/* 使用 clamp 约束侧边栏宽度，画布自适应 */
+.game-layout {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: clamp(200px, 14vw, 280px) minmax(0, 1fr) clamp(160px, 12vw, 220px);
+  gap: 8px;
+  align-items: stretch;
+}
+
+/* ─── 结算遮罩（半透明版本） ─── */
+.end-game-overlay-light {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(2px);
+}
+
+/* ─── 塔数量角标 ─── */
+/* 建塔按钮右上角显示已拥有同类型塔数量 */
+.tower-count-badge {
+  color: #ffd700;
+  font-size: 0.65rem;
+  font-weight: 700;
+  margin-left: 3px;
+}
+
+/* ─── 天气/环境面板 ─── */
+.weather-card { flex: 0 0 auto; }
+
+/* ─── 羁绊图标（选中面板底部） ─── */
+.synergy-icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px;
+  background: rgba(255,255,255,.03);
+  cursor: help;
+  transition: all .2s;
+  position: relative;
+}
+.synergy-icon-item:hover {
+  border-color: #73ff66 !important;
+  box-shadow: 0 0 12px rgba(125,255,113,.3);
+  transform: translateY(-2px);
+}
+.synergy-icon-item.active {
+  border-color: rgba(125,255,113,.6);
+  background: rgba(125,255,113,.1);
+}
